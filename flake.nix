@@ -2,14 +2,17 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     systems.url = "github:nix-systems/default";
+    flake-utils.url = "github:numtide/flake-utils";
+
   };
 
-  outputs = { self, nixpkgs, systems }:
+  outputs = { self, nixpkgs, systems, flake-utils }:
     let
-      perSystem = callback: nixpkgs.lib.genAttrs (import systems) (system: callback (initPkgs system));
+      perSystem = callback:
+        nixpkgs.lib.genAttrs (import systems)
+        (system: callback (initPkgs system));
       initPkgs = system: nixpkgs.legacyPackages.${system};
-    in
-    {
+    in {
       packages = perSystem (pkgs: rec {
         # Run ilia in the project repo with:
         #
@@ -22,5 +25,9 @@
         default = ilia;
         ilia = pkgs.callPackage ./nix/ilia.nix { source = ./.; };
       });
+      overlays.default = final: prev: {
+        ilia = prev.callPackage ./nix/ilia.nix { source = ./.; };
+      };
     };
+
 }
